@@ -6,4 +6,4 @@ build:
 	go-fuzz-build
 
 fuzz:
-	go-fuzz -workdir fuzzout -procs 16
+	go-fuzz -workdir fuzzout -procs 8
