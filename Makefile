@@ -1,5 +1,4 @@
 deps:
-	go get "gitlab.com/yawning/chacha20.git"
 	go get "golang.org/x/crypto/sha3"
 
 build:
