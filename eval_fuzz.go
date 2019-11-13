@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/algorand/go-algorand/config"
-	"github.com/algorand/go-algorand/data/basics"
 	"github.com/algorand/go-algorand/data/transactions"
 )
 
@@ -68,11 +67,15 @@ func Fuzz(data []byte) int {
 		LogicSigVersion: EvalMaxVersion - 1,
 	}
 
-	// Constuct GroupSenders
-	gsnd := make([]basics.BalanceRecord, 4)
+	// Constuct TxnGroup
+	group := []transactions.SignedTxnWithAD{
+		transactions.SignedTxnWithAD{
+			SignedTxn: txn,
+		},
+	}
 
 	// Construct eval params
-	ep := EvalParams{Txn: &txn, Proto: &proto, GroupSenders: gsnd}
+	ep := EvalParams{Txn: &txn, Proto: &proto, TxnGroup: group, GroupIndex: 0}
 
 	fmt.Printf("program: %x\n", program)
 	for i, arg := range args {

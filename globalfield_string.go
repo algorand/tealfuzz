@@ -1,0 +1,1 @@
+../go-algorand/data/transactions/logic/globalfield_string.go
