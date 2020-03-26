@@ -15,7 +15,7 @@ RUN GOMOD111=on go mod vendor
 
 RUN ./scripts/configure_dev.sh
 
-RUN make crypto/lib/libsodium.a
+RUN make build
 
 WORKDIR /go/src/github.com/algorand/
 
