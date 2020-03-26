@@ -5,9 +5,11 @@ RUN go get -u github.com/algorand/go-fuzz/go-fuzz \
 
 WORKDIR /go/src/github.com/algorand/
 
-RUN git clone https://github.com/algorand/go-algorand.git
+RUN git clone https://github.com/justicz/go-algorand.git
 
 WORKDIR /go/src/github.com/algorand/go-algorand
+
+RUN git checkout maxj/applications
 
 RUN GOMOD111=on go mod vendor
 

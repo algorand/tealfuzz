@@ -5,8 +5,44 @@ import (
 	"fmt"
 
 	"github.com/algorand/go-algorand/config"
+	"github.com/algorand/go-algorand/data/basics"
 	"github.com/algorand/go-algorand/data/transactions"
+	"github.com/algorand/go-algorand/protocol"
 )
+
+type mockAppLedger struct{}
+
+func (ml *mockAppLedger) Balance(addr basics.Address) (uint64, error) {
+	return 1234, nil
+}
+
+func (ml *mockAppLedger) AppGlobalState() (basics.TealKeyValue, error) {
+	tkv := make(basics.TealKeyValue)
+	tkv["A"] = basics.TealValue{
+		Type:  basics.TealBytesType,
+		Bytes: "hello",
+	}
+	tkv["A"] = basics.TealValue{
+		Type: basics.TealUintType,
+		Uint: 1234,
+	}
+	return tkv, nil
+}
+
+func (ml *mockAppLedger) AppLocalState(addr basics.Address, appIdx basics.AppIndex) (basics.TealKeyValue, error) {
+	return ml.AppGlobalState()
+}
+
+func (ml *mockAppLedger) AssetHolding(addr basics.Address, assetIdx basics.AssetIndex) (holding basics.AssetHolding, err error) {
+	return basics.AssetHolding{
+		Frozen: true,
+		Amount: 1234,
+	}, nil
+}
+
+func (al *mockAppLedger) AssetParams(addr basics.Address, assetIdx basics.AssetIndex) (params basics.AssetParams, err error) {
+	return basics.AssetParams{}, nil
+}
 
 func Fuzz(data []byte) int {
 	// Ensure input isn't too long
@@ -54,11 +90,25 @@ func Fuzz(data []byte) int {
 		args = append(args, arg)
 	}
 
+	// Copy args for application args too
+	appargs := make([]string, len(args), len(args))
+	for i, arg := range args {
+		appargs[i] = string(arg)
+	}
+
 	// Rest of bytes is the program
 	program := buf.Bytes()
 
 	// Construct transaction
 	var txn transactions.SignedTxn
+
+	txn.Txn.Type = protocol.ApplicationCallTx
+	txn.Txn.ApplicationArgs = appargs
+	txn.Txn.Sender = basics.Address{4, 3, 2, 1}
+	txn.Txn.Accounts = []basics.Address{
+		basics.Address{1, 2, 3, 4},
+	}
+
 	txn.Lsig.Logic = program
 	txn.Lsig.Args = args
 
@@ -68,14 +118,18 @@ func Fuzz(data []byte) int {
 	}
 
 	// Constuct TxnGroup
-	group := []transactions.SignedTxnWithAD{
-		transactions.SignedTxnWithAD{
-			SignedTxn: txn,
-		},
+	group := []transactions.SignedTxn{
+		txn,
 	}
 
 	// Construct eval params
-	ep := EvalParams{Txn: &txn, Proto: &proto, TxnGroup: group, GroupIndex: 0}
+	ep := EvalParams{
+		Txn:        &txn,
+		Proto:      &proto,
+		TxnGroup:   group,
+		GroupIndex: 0,
+		Ledger:     &mockAppLedger{},
+	}
 
 	fmt.Printf("program: %x\n", program)
 	for i, arg := range args {
@@ -83,7 +137,7 @@ func Fuzz(data []byte) int {
 	}
 
 	// Check program is valid and cost is sufficiently low
-	_, err = Check(program, ep)
+	_, err = CheckStateful(program, ep)
 
 	// Check if err was panic (since we recover)
 	if pe, ok := err.(PanicError); ok {
@@ -91,7 +145,7 @@ func Fuzz(data []byte) int {
 	}
 
 	// Run the program
-	_, err = Eval(program, ep)
+	_, _, err = EvalStateful(program, ep)
 
 	// Check if err was panic (since we recover)
 	if pe, ok := err.(PanicError); ok {
