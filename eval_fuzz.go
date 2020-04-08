@@ -90,12 +90,6 @@ func Fuzz(data []byte) int {
 		args = append(args, arg)
 	}
 
-	// Copy args for application args too
-	appargs := make([]string, len(args), len(args))
-	for i, arg := range args {
-		appargs[i] = string(arg)
-	}
-
 	// Rest of bytes is the program
 	program := buf.Bytes()
 
@@ -103,7 +97,7 @@ func Fuzz(data []byte) int {
 	var txn transactions.SignedTxn
 
 	txn.Txn.Type = protocol.ApplicationCallTx
-	txn.Txn.ApplicationArgs = appargs
+	txn.Txn.ApplicationArgs = args
 	txn.Txn.Sender = basics.Address{4, 3, 2, 1}
 	txn.Txn.Accounts = []basics.Address{
 		basics.Address{1, 2, 3, 4},
