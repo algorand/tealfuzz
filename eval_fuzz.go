@@ -12,11 +12,15 @@ import (
 
 type mockAppLedger struct{}
 
-func (ml *mockAppLedger) Balance(addr basics.Address) (uint64, error) {
-	return 1234, nil
+func (ml *mockAppLedger) Balance(addr basics.Address) (basics.MicroAlgos, error) {
+	return basics.MicroAlgos{1234}, nil
 }
 
-func (ml *mockAppLedger) AppGlobalState() (basics.TealKeyValue, error) {
+func (ml *mockAppLedger) Round() basics.Round {
+	return basics.Round(1234)
+}
+
+func (ml *mockAppLedger) AppGlobalState(appIdx basics.AppIndex) (basics.TealKeyValue, error) {
 	tkv := make(basics.TealKeyValue)
 	tkv["A"] = basics.TealValue{
 		Type:  basics.TealBytesType,
@@ -30,7 +34,7 @@ func (ml *mockAppLedger) AppGlobalState() (basics.TealKeyValue, error) {
 }
 
 func (ml *mockAppLedger) AppLocalState(addr basics.Address, appIdx basics.AppIndex) (basics.TealKeyValue, error) {
-	return ml.AppGlobalState()
+	return ml.AppGlobalState(appIdx)
 }
 
 func (ml *mockAppLedger) AssetHolding(addr basics.Address, assetIdx basics.AssetIndex) (holding basics.AssetHolding, err error) {
