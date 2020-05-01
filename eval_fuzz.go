@@ -112,7 +112,8 @@ func Fuzz(data []byte) int {
 
 	// Set protocol version info
 	proto := config.ConsensusParams{
-		LogicSigVersion: EvalMaxVersion - 1,
+		LogicSigVersion: 5,
+		LogicSigMaxCost: 100000,
 	}
 
 	// Constuct TxnGroup
@@ -144,6 +145,7 @@ func Fuzz(data []byte) int {
 
 	// Run the program
 	_, _, err = EvalStateful(program, ep)
+	fmt.Printf("err: %v\n", err)
 
 	// Check if err was panic (since we recover)
 	if pe, ok := err.(PanicError); ok {
