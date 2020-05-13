@@ -20,6 +20,10 @@ func (ml *mockAppLedger) Round() basics.Round {
 	return basics.Round(1234)
 }
 
+func (ml *mockAppLedger) LatestTimestamp() int64 {
+	return 1234
+}
+
 func (ml *mockAppLedger) AppGlobalState(appIdx basics.AppIndex) (basics.TealKeyValue, error) {
 	tkv := make(basics.TealKeyValue)
 	tkv["A"] = basics.TealValue{
