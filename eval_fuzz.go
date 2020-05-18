@@ -2,55 +2,75 @@ package fuzz
 
 import (
 	"bytes"
-	//"fmt"
+	"fmt"
 
-	"github.com/algorand/go-algorand/config"
-	"github.com/algorand/go-algorand/data/basics"
-	"github.com/algorand/go-algorand/data/transactions"
-	"github.com/algorand/go-algorand/data/transactions/logic"
-	"github.com/algorand/go-algorand/protocol"
+	aconfig "github.com/algorand/go-algorand/config"
+	abasics "github.com/algorand/go-algorand/data/basics"
+	atransactions "github.com/algorand/go-algorand/data/transactions"
+	alogic "github.com/algorand/go-algorand/data/transactions/logic"
+	aprotocol "github.com/algorand/go-algorand/protocol"
+
+	mconfig "github.com/algorand/go-algorand-master/config"
+	mbasics "github.com/algorand/go-algorand-master/data/basics"
+	mtransactions "github.com/algorand/go-algorand-master/data/transactions"
+	mlogic "github.com/algorand/go-algorand-master/data/transactions/logic"
+	mprotocol "github.com/algorand/go-algorand-master/protocol"
 )
 
-type mockAppLedger struct{}
+func constructOldParams(program []byte, args [][]byte) mlogic.EvalParams {
+	// Construct transaction
+	var txn mtransactions.SignedTxn
+	txn.Txn.Type = mprotocol.PaymentTx
+	txn.Txn.Sender = mbasics.Address{4, 3, 2, 1}
+	txn.Lsig.Logic = program
+	txn.Lsig.Args = args
 
-func (ml *mockAppLedger) Balance(addr basics.Address) (basics.MicroAlgos, error) {
-	return basics.MicroAlgos{1234}, nil
-}
-
-func (ml *mockAppLedger) Round() basics.Round {
-	return basics.Round(1234)
-}
-
-func (ml *mockAppLedger) LatestTimestamp() int64 {
-	return 1234
-}
-
-func (ml *mockAppLedger) AppGlobalState(appIdx basics.AppIndex) (basics.TealKeyValue, error) {
-	tkv := make(basics.TealKeyValue)
-	tkv["A"] = basics.TealValue{
-		Type:  basics.TealBytesType,
-		Bytes: "hello",
+	// Set protocol version info
+	proto := mconfig.ConsensusParams{
+		LogicSigVersion: 5,
+		LogicSigMaxCost: 100000,
 	}
-	tkv["A"] = basics.TealValue{
-		Type: basics.TealUintType,
-		Uint: 1234,
+
+	// Constuct TxnGroup
+	group := []mtransactions.SignedTxn{
+		txn,
 	}
-	return tkv, nil
+
+	// Construct eval params
+	return mlogic.EvalParams{
+		Txn:        &txn,
+		Proto:      &proto,
+		TxnGroup:   group,
+		GroupIndex: 0,
+	}
 }
 
-func (ml *mockAppLedger) AppLocalState(addr basics.Address, appIdx basics.AppIndex) (basics.TealKeyValue, error) {
-	return ml.AppGlobalState(appIdx)
-}
+func constructNewParams(program []byte, args [][]byte) alogic.EvalParams {
+	// Construct transaction
+	var txn atransactions.SignedTxn
+	txn.Txn.Type = aprotocol.ApplicationCallTx
+	txn.Txn.Sender = abasics.Address{4, 3, 2, 1}
+	txn.Lsig.Logic = program
+	txn.Lsig.Args = args
 
-func (ml *mockAppLedger) AssetHolding(addr basics.Address, assetIdx basics.AssetIndex) (holding basics.AssetHolding, err error) {
-	return basics.AssetHolding{
-		Frozen: true,
-		Amount: 1234,
-	}, nil
-}
+	// Set protocol version info
+	proto := aconfig.ConsensusParams{
+		LogicSigVersion: 5,
+		LogicSigMaxCost: 100000,
+	}
 
-func (al *mockAppLedger) AssetParams(addr basics.Address, assetIdx basics.AssetIndex) (params basics.AssetParams, err error) {
-	return basics.AssetParams{}, nil
+	// Constuct TxnGroup
+	group := []atransactions.SignedTxn{
+		txn,
+	}
+
+	// Construct eval params
+	return alogic.EvalParams{
+		Txn:        &txn,
+		Proto:      &proto,
+		TxnGroup:   group,
+		GroupIndex: 0,
+	}
 }
 
 func Fuzz(data []byte) int {
@@ -102,59 +122,57 @@ func Fuzz(data []byte) int {
 	// Rest of bytes is the program
 	program := buf.Bytes()
 
-	// Construct transaction
-	var txn transactions.SignedTxn
-
-	txn.Txn.Type = protocol.ApplicationCallTx
-	txn.Txn.ApplicationArgs = args
-	txn.Txn.Sender = basics.Address{4, 3, 2, 1}
-	txn.Txn.Accounts = []basics.Address{
-		basics.Address{1, 2, 3, 4},
-	}
-
-	txn.Lsig.Logic = program
-	txn.Lsig.Args = args
-
-	// Set protocol version info
-	proto := config.ConsensusParams{
-		LogicSigVersion: 5,
-		LogicSigMaxCost: 100000,
-	}
-
-	// Constuct TxnGroup
-	group := []transactions.SignedTxn{
-		txn,
-	}
-
-	// Construct eval params
-	ep := logic.EvalParams{
-		Txn:        &txn,
-		Proto:      &proto,
-		TxnGroup:   group,
-		GroupIndex: 0,
-		Ledger:     &mockAppLedger{},
-	}
-
 	//fmt.Printf("program: %x\n", program)
 	//for i, arg := range args {
 	//	fmt.Printf("arg %d: %x\n", i, arg)
 	//}
 
-	// Check program is valid and cost is sufficiently low
-	_, err = logic.CheckStateful(program, ep)
+	// Construct eval params for each environment
+	ep0 := constructNewParams(program, args)
+	ep1 := constructOldParams(program, args)
 
-	// Check if err was panic (since we recover)
-	if pe, ok := err.(logic.PanicError); ok {
+	// Check program is valid and cost is sufficiently low
+	cost0, err0 := alogic.Check(program, ep0)
+	cost1, err1 := mlogic.Check(program, ep1)
+
+	// Check for panics
+	if pe, ok := err0.(alogic.PanicError); ok {
+		panic(pe.Error())
+	}
+	if pe, ok := err1.(mlogic.PanicError); ok {
 		panic(pe.Error())
 	}
 
-	// Run the program
-	_, _, err = logic.EvalStateful(program, ep)
-	//fmt.Printf("err: %v\n", err)
+	// Check for err nilness equality
+	if (err0 == nil) != (err1 == nil) {
+		panic(fmt.Sprintf("check error nilness not equal! %v != %v", err0, err1))
+	}
 
-	// Check if err was panic (since we recover)
-	if pe, ok := err.(logic.PanicError); ok {
+	// Check for cost equality
+	if cost0 != cost1 {
+		panic(fmt.Sprintf("costs not equal! %d != %d", cost0, cost1))
+	}
+
+	// Run the program
+	pass0, err0 := alogic.Eval(program, ep0)
+	pass1, err1 := mlogic.Eval(program, ep1)
+
+	// Check for panics
+	if pe, ok := err0.(alogic.PanicError); ok {
 		panic(pe.Error())
+	}
+	if pe, ok := err1.(mlogic.PanicError); ok {
+		panic(pe.Error())
+	}
+
+	// Check for err nilness equality
+	if (err0 == nil) != (err1 == nil) {
+		panic(fmt.Sprintf("eval error nilness not equal! %v != %v", err0, err1))
+	}
+
+	// Check for pass equality
+	if pass0 != pass1 {
+		panic(fmt.Sprintf("success not equal! %v != %v", pass0, pass1))
 	}
 
 	// If we made it here, the test case is interesting
