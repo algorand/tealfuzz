@@ -73,10 +73,20 @@ func constructNewParams(program []byte, args [][]byte) alogic.EvalParams {
 	}
 }
 
+func disasm(program []byte) (string, error) {
+	defer func() {
+		if x := recover(); x != nil {
+			fmt.Printf("panic while disassembling program: %x\n", program)
+			fmt.Printf("%v\n", x)
+		}
+	}()
+	return alogic.Disassemble(program)
+}
+
 func logFailed(program []byte, args [][]byte) {
-	text, err := alogic.Disassemble(program)
-	fmt.Printf("crasher (disasm err: %v):\n %s\n", err, text)
-	fmt.Printf("args:\n")
+	text, err := disasm(program)
+	fmt.Printf("crasher disasm (disasm err: %v):\n %s\n", err, text)
+	fmt.Printf("crasher args:\n")
 	for i, arg := range args {
 		fmt.Printf("arg %d: %x\n", i, arg)
 	}
