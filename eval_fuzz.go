@@ -73,6 +73,15 @@ func constructNewParams(program []byte, args [][]byte) alogic.EvalParams {
 	}
 }
 
+func logFailed(program []byte, args [][]byte) {
+	text, err := alogic.Disassemble(program)
+	fmt.Printf("crasher (disasm err: %v):\n %s\n", err, text)
+	fmt.Printf("args:\n")
+	for i, arg := range args {
+		fmt.Printf("arg %d: %x\n", i, arg)
+	}
+}
+
 func Fuzz(data []byte) int {
 	// Ensure input isn't too long
 	if len(data) > 50000 {
@@ -137,19 +146,23 @@ func Fuzz(data []byte) int {
 
 	// Check for panics
 	if pe, ok := err0.(alogic.PanicError); ok {
+		logFailed(program, args)
 		panic(pe.Error())
 	}
 	if pe, ok := err1.(mlogic.PanicError); ok {
+		logFailed(program, args)
 		panic(pe.Error())
 	}
 
 	// Check for err nilness equality
 	if (err0 == nil) != (err1 == nil) {
+		logFailed(program, args)
 		panic(fmt.Sprintf("check error nilness not equal! %v != %v", err0, err1))
 	}
 
 	// Check for cost equality
 	if cost0 != cost1 {
+		logFailed(program, args)
 		panic(fmt.Sprintf("costs not equal! %d != %d", cost0, cost1))
 	}
 
@@ -159,19 +172,23 @@ func Fuzz(data []byte) int {
 
 	// Check for panics
 	if pe, ok := err0.(alogic.PanicError); ok {
+		logFailed(program, args)
 		panic(pe.Error())
 	}
 	if pe, ok := err1.(mlogic.PanicError); ok {
+		logFailed(program, args)
 		panic(pe.Error())
 	}
 
 	// Check for err nilness equality
 	if (err0 == nil) != (err1 == nil) {
+		logFailed(program, args)
 		panic(fmt.Sprintf("eval error nilness not equal! %v != %v", err0, err1))
 	}
 
 	// Check for pass equality
 	if pass0 != pass1 {
+		logFailed(program, args)
 		panic(fmt.Sprintf("success not equal! %v != %v", pass0, pass1))
 	}
 
