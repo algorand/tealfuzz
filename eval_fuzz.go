@@ -2,7 +2,7 @@ package fuzz
 
 import (
 	"bytes"
-	//	"fmt"
+	//"fmt"
 
 	"github.com/algorand/go-algorand/config"
 	"github.com/algorand/go-algorand/data/basics"
