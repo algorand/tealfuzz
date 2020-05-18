@@ -27,7 +27,7 @@ func constructOldParams(program []byte, args [][]byte) mlogic.EvalParams {
 
 	// Set protocol version info
 	proto := mconfig.ConsensusParams{
-		LogicSigVersion: 5,
+		LogicSigVersion: 1,
 		LogicSigMaxCost: 100000,
 	}
 
@@ -55,7 +55,7 @@ func constructNewParams(program []byte, args [][]byte) alogic.EvalParams {
 
 	// Set protocol version info
 	proto := aconfig.ConsensusParams{
-		LogicSigVersion: 5,
+		LogicSigVersion: 1,
 		LogicSigMaxCost: 100000,
 	}
 
