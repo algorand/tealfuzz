@@ -48,7 +48,7 @@ func constructOldParams(program []byte, args [][]byte) mlogic.EvalParams {
 func constructNewParams(program []byte, args [][]byte) alogic.EvalParams {
 	// Construct transaction
 	var txn atransactions.SignedTxn
-	txn.Txn.Type = aprotocol.ApplicationCallTx
+	txn.Txn.Type = aprotocol.PaymentTx
 	txn.Txn.Sender = abasics.Address{4, 3, 2, 1}
 	txn.Lsig.Logic = program
 	txn.Lsig.Args = args
