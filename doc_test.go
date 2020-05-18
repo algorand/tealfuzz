@@ -1,1 +1,0 @@
-../go-algorand/data/transactions/logic/doc_test.go

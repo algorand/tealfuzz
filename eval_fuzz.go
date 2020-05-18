@@ -1,12 +1,13 @@
-package logic
+package fuzz
 
 import (
 	"bytes"
-	"fmt"
+	//	"fmt"
 
 	"github.com/algorand/go-algorand/config"
 	"github.com/algorand/go-algorand/data/basics"
 	"github.com/algorand/go-algorand/data/transactions"
+	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/algorand/go-algorand/protocol"
 )
 
@@ -126,7 +127,7 @@ func Fuzz(data []byte) int {
 	}
 
 	// Construct eval params
-	ep := EvalParams{
+	ep := logic.EvalParams{
 		Txn:        &txn,
 		Proto:      &proto,
 		TxnGroup:   group,
@@ -134,25 +135,25 @@ func Fuzz(data []byte) int {
 		Ledger:     &mockAppLedger{},
 	}
 
-	fmt.Printf("program: %x\n", program)
-	for i, arg := range args {
-		fmt.Printf("arg %d: %x\n", i, arg)
-	}
+	//fmt.Printf("program: %x\n", program)
+	//for i, arg := range args {
+	//	fmt.Printf("arg %d: %x\n", i, arg)
+	//}
 
 	// Check program is valid and cost is sufficiently low
-	_, err = CheckStateful(program, ep)
+	_, err = logic.CheckStateful(program, ep)
 
 	// Check if err was panic (since we recover)
-	if pe, ok := err.(PanicError); ok {
+	if pe, ok := err.(logic.PanicError); ok {
 		panic(pe.Error())
 	}
 
 	// Run the program
-	_, _, err = EvalStateful(program, ep)
-	fmt.Printf("err: %v\n", err)
+	_, _, err = logic.EvalStateful(program, ep)
+	//fmt.Printf("err: %v\n", err)
 
 	// Check if err was panic (since we recover)
-	if pe, ok := err.(PanicError); ok {
+	if pe, ok := err.(logic.PanicError); ok {
 		panic(pe.Error())
 	}
 
