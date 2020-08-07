@@ -49,8 +49,26 @@ func (ml *mockAppLedger) AssetHolding(addr basics.Address, assetIdx basics.Asset
 	}, nil
 }
 
-func (al *mockAppLedger) AssetParams(addr basics.Address, assetIdx basics.AssetIndex) (params basics.AssetParams, err error) {
+func (al *mockAppLedger) AssetParams(assetIdx basics.AssetIndex) (params basics.AssetParams, err error) {
 	return basics.AssetParams{}, nil
+}
+
+func (l *mockAppLedger) ApplicationID() basics.AppIndex {
+	return basics.AppIndex(1234)
+}
+
+func (l *mockAppLedger) LocalSchema() basics.StateSchema {
+	return basics.StateSchema{
+		NumUint:      100,
+		NumByteSlice: 100,
+	}
+}
+
+func (l *mockAppLedger) GlobalSchema() basics.StateSchema {
+	return basics.StateSchema{
+		NumUint:      100,
+		NumByteSlice: 100,
+	}
 }
 
 func Fuzz(data []byte) int {
